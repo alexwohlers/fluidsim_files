@@ -26,33 +26,44 @@ plt.rcParams['savefig.dpi'] = 300
 class class_Knoten:
     def __init__(self):
         self.p                 = 0        
-        self.V                 = 0        
-        self.Q                 = 0        
-    def Reset_Knotenvolumenstroeme(self):
+        self.V                 = 0
+        self.m                 = 0
+        self.Q                 = 0  
+        self.m_p               = 0
+    def Reset_Knotenstroeme(self):
         self.Q                 = 0
+        self.m_p               = 0
     def Reset_Knoten(self):
         self.p                 = 0        
         self.V                 = 0        
+        self.m                 = 0
         self.Q                 = 0
+        self.m_p               = 0        
        
 class class_Datenlogger_Knoten:
     def __init__(self):
         self.p                 = []        
         self.Q                 = []        
+        self.m_p               = []        
     def Werte_loeschen(self):
         self.p.clear()        
         self.Q.clear()        
+        self.m_p.clear()        
     def Werte_anhaengen(self, Knoten):
         self.p.append(Knoten.p)        
         self.Q.append(Knoten.Q)        
+        self.m_p.append(Knoten.m_p)        
 
 class class_Datenlogger_Element:
     def __init__(self):
-        self.Q       = []        
+        self.Q         = []        
+        self.m_p       = []        
     def Werte_loeschen(self):
         self.Q.clear()        
+        self.m_p.clear()        
     def Werte_anhaengen(self, Element):
         self.Q.append(Element.Info_Q)        
+        self.m_p.append(Element.Info_m_p)        
 
     
 #########################################################################
@@ -70,9 +81,12 @@ class ODESolver:
     """
 
     def __init__(self, f, KNOTEN, Klasse):
-        if (Klasse == "class_DGL_Kapazitaet"):
+        if (Klasse == "class_DGL_Kapazitaet_Volumenstrombasiert"):
             self.Knoteni = KNOTEN[0]            
-            self.VOLUMENSTROEME = [0]                
+            self.STROEME = [0]                
+        if (Klasse == "class_DGL_Kapazitaet_Massenstrombasiert"):
+            self.Knoteni = KNOTEN[0]            
+            self.STROEME = [0]                
 
         self.f = f
         self.number_of_eqns = 2
@@ -82,8 +96,11 @@ class ODESolver:
         self.U0 = U0in                     
         
     def aktualisiere_initial_conditions(self, Klasse):                
-        if (Klasse == "class_DGL_Kapazitaet"):
-            self.VOLUMENSTROEME = [self.Knoteni.Q]
+        if (Klasse == "class_DGL_Kapazitaet_Volumenstrombasiert"):
+            self.STROEME = [self.Knoteni.Q]
+            self.U0 = [self.Knoteni.p,0]                            
+        if (Klasse == "class_DGL_Kapazitaet_Massenstrombasiert"):
+            self.STROEME = [self.Knoteni.m_p]
             self.U0 = [self.Knoteni.p,0]                            
             
     def solve_timestep(self, delta_t):
@@ -124,21 +141,21 @@ class ODESolver:
             
 class RungeKutta4(ODESolver):
     def advance(self):
-        u, f, i, t, VOLUMENSTROEME = self.u, self.f, self.i, self.t, self.VOLUMENSTROEME
+        u, f, i, t, STROEME = self.u, self.f, self.i, self.t, self.STROEME
         dt = t[i + 1] - t[i]
         dt2 = dt / 2
-        K1 = dt * f(u[i, :], VOLUMENSTROEME, t[i])
-        K2 = dt * f(u[i, :] + 0.5 * K1, VOLUMENSTROEME, t[i] + dt2)
-        K3 = dt * f(u[i, :] + 0.5 * K2, VOLUMENSTROEME, t[i] + dt2)
-        K4 = dt * f(u[i, :] + K3, VOLUMENSTROEME, t[i] + dt)
+        K1 = dt * f(u[i, :], STROEME, t[i])
+        K2 = dt * f(u[i, :] + 0.5 * K1, STROEME, t[i] + dt2)
+        K3 = dt * f(u[i, :] + 0.5 * K2, STROEME, t[i] + dt2)
+        K4 = dt * f(u[i, :] + K3, STROEME, t[i] + dt)
         return u[i, :] + (1 / 6) * (K1 + 2 * K2 + 2 * K3 + K4)   
         
 class Euler(ODESolver):
     def advance(self):
-        u, f, i, t, VOLUMENSTROEME = self.u, self.f, self.i, self.t, self.VOLUMENSTROEME
+        u, f, i, t, STROEME = self.u, self.f, self.i, self.t, self.STROEME
         dt = t[i + 1] - t[i]
         dt2 = dt / 2
-        K1 = dt * f(u[i, :], VOLUMENSTROEME, t[i])        
+        K1 = dt * f(u[i, :], STROEME, t[i])        
         return u[i, :] + K1   
  
 
@@ -153,13 +170,14 @@ class class_Knotenpunkt:
         
 class class_Blende:
     def __init__(self, PARAMETER_FLUID, alpha, d, KNOTEN):
-        self.Knoteni = KNOTEN[0]
-        self.Knotenj = KNOTEN[1]        
-        self.alpha   = alpha 
-        self.d       = d        
-        self.rho     = PARAMETER_FLUID[0]
-        self.E       = PARAMETER_FLUID[1]    
-        self.Info_Q  = 0
+        self.Knoteni  = KNOTEN[0]
+        self.Knotenj  = KNOTEN[1]        
+        self.alpha    = alpha 
+        self.d        = d        
+        self.rho      = PARAMETER_FLUID[0]
+        self.E        = PARAMETER_FLUID[1]    
+        self.Info_Q   = 0
+        self.Info_m_p = 0
         
     def Berechnung_Volumenstroeme(self):                        
         dp           = self.Knoteni.p - self.Knotenj.p
@@ -169,12 +187,22 @@ class class_Blende:
             self.Knoteni.Q   -= self.alpha * A * pow((2/self.rho),0.5) * pow(dp,0.5)
             self.Knotenj.Q   += self.alpha * A * pow((2/self.rho),0.5) * pow(dp,0.5)        
             self.Info_Q       = self.Knotenj.Q
+            
+    def Berechnung_Massenstroeme(self):                        
+        dp           = self.Knoteni.p - self.Knotenj.p
+        A            = 3.14156 * pow(self.d,2)/4
+        #Wenn dp zu klein, dann keine Berechnung und Rückgabe Q = 0
+        if (dp > 1e-3):
+            self.Knoteni.m_p   -= self.rho * self.alpha * A * pow((2/self.rho),0.5) * pow(dp,0.5)
+            self.Knotenj.m_p   += self.rho * self.alpha * A * pow((2/self.rho),0.5) * pow(dp,0.5)        
+            self.Info_m_p       = self.Knotenj.m_p
+            
     
 #########################################################################
 ##### Definition der primären Komponenten ###############################
 #########################################################################
         
-class class_DGL_Kapazitaet:
+class class_DGL_Kapazitaet_Volumenstrombasiert:
     """
     Gleichungssystem
     du0/dt = u1
@@ -186,10 +214,10 @@ class class_DGL_Kapazitaet:
         self.Knoteni = KNOTEN[0]                         
         self.rho     = PARAMETER_FLUID[0]
         self.E       = PARAMETER_FLUID[1]        
-        self.Euler = Euler(self, KNOTEN, "class_DGL_Kapazitaet")        
+        self.Euler = Euler(self, KNOTEN, "class_DGL_Kapazitaet_Volumenstrombasiert")        
                        
     def Aktualisiere_Anfangsrandbedingungen(self):
-        self.Euler.aktualisiere_initial_conditions("class_DGL_Kapazitaet")    
+        self.Euler.aktualisiere_initial_conditions("class_DGL_Kapazitaet_Volumenstrombasiert")    
         
     def Loesung_Differentialgleichung_Zeitschritt(self, delta_t):
         self.Aktualisiere_Anfangsrandbedingungen()
@@ -197,11 +225,49 @@ class class_DGL_Kapazitaet:
         self.Zuweisung_motion(Rueckgabevektor, delta_t)  
         self.Aktualisiere_Anfangsrandbedingungen()           
 
-    def __call__(self, u, VOLUMENSTROEME, t):
+    def __call__(self, u, STROEME, t):
         u0, u1  = u
         V       = self.Knoteni.V        
         C       = V / self.E
-        return np.array([(VOLUMENSTROEME[0]/C),0])    
+        return np.array([(STROEME[0]/C),0])    
+
+    def Zuweisung_motion(self, u, delta_t):        
+        p_p  = u[1,1]        
+        p    = u[1,0]                
+        self.Knoteni.p      = p
+
+class class_DGL_Kapazitaet_Massenstrombasiert:
+    """
+    Gleichungssystem
+    du0/dt = u1
+    du1/dt = g + Fi/m - Fj/m
+    """
+    """    
+    """
+    def __init__(self, PARAMETER_FLUID, KNOTEN):
+        self.Knoteni = KNOTEN[0]                         
+        self.rho     = PARAMETER_FLUID[0]
+        self.E       = PARAMETER_FLUID[1]        
+        self.Euler = Euler(self, KNOTEN, "class_DGL_Kapazitaet_Massenstrombasiert")        
+                       
+    def Aktualisiere_Anfangsrandbedingungen(self):
+        self.Euler.aktualisiere_initial_conditions("class_DGL_Kapazitaet_Massenstrombasiert")    
+        
+    def Loesung_Differentialgleichung_Zeitschritt(self, delta_t):
+        self.Aktualisiere_Anfangsrandbedingungen()
+        Rueckgabevektor            =  self.Euler.solve_timestep(delta_t)
+        self.Zuweisung_motion(Rueckgabevektor, delta_t)  
+        self.Aktualisiere_Anfangsrandbedingungen()           
+
+    def __call__(self, u, STROEME, t):
+        u0, u1  = u
+        E       = self.E
+        rho     = self.rho
+        V       = self.Knoteni.V
+        m       = rho * V
+        V_p     = 0
+        
+        return np.array([(E*((STROEME[0]/m)-(V_p/V))),0])    
 
     def Zuweisung_motion(self, u, delta_t):        
         p_p  = u[1,1]        
@@ -238,27 +304,27 @@ K20           = class_Knoten()
 #########################################################################
         
     
-def Reset_Knotenvolumenstroeme():
-    K1.Reset_Knotenvolumenstroeme()
-    K2.Reset_Knotenvolumenstroeme()
-    K3.Reset_Knotenvolumenstroeme()
-    K4.Reset_Knotenvolumenstroeme()
-    K5.Reset_Knotenvolumenstroeme()
-    K6.Reset_Knotenvolumenstroeme()
-    K7.Reset_Knotenvolumenstroeme()
-    K8.Reset_Knotenvolumenstroeme()
-    K9.Reset_Knotenvolumenstroeme()
-    K10.Reset_Knotenvolumenstroeme()
-    K11.Reset_Knotenvolumenstroeme()
-    K12.Reset_Knotenvolumenstroeme()
-    K13.Reset_Knotenvolumenstroeme()
-    K14.Reset_Knotenvolumenstroeme()
-    K15.Reset_Knotenvolumenstroeme()
-    K16.Reset_Knotenvolumenstroeme()
-    K17.Reset_Knotenvolumenstroeme()
-    K18.Reset_Knotenvolumenstroeme()
-    K19.Reset_Knotenvolumenstroeme()
-    K20.Reset_Knotenvolumenstroeme()
+def Reset_Knotenstroeme():
+    K1.Reset_Knotenstroeme()
+    K2.Reset_Knotenstroeme()
+    K3.Reset_Knotenstroeme()
+    K4.Reset_Knotenstroeme()
+    K5.Reset_Knotenstroeme()
+    K6.Reset_Knotenstroeme()
+    K7.Reset_Knotenstroeme()
+    K8.Reset_Knotenstroeme()
+    K9.Reset_Knotenstroeme()
+    K10.Reset_Knotenstroeme()
+    K11.Reset_Knotenstroeme()
+    K12.Reset_Knotenstroeme()
+    K13.Reset_Knotenstroeme()
+    K14.Reset_Knotenstroeme()
+    K15.Reset_Knotenstroeme()
+    K16.Reset_Knotenstroeme()
+    K17.Reset_Knotenstroeme()
+    K18.Reset_Knotenstroeme()
+    K19.Reset_Knotenstroeme()
+    K20.Reset_Knotenstroeme()
 
 
 def Reset_Knoten():
