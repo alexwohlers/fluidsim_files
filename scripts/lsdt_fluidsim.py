@@ -161,14 +161,24 @@ class Euler(ODESolver):
 
 
 #########################################################################
-##### Definition der sekundären Komponenten #############################
+##### Definition der Elemente E #########################################
 #########################################################################
 
 class class_Knotenpunkt:
     def __init__(self, KNOTEN):
         self.Knoteni = KNOTEN[0]                
-        
-class class_Blende:
+
+"""
+Bedeutungen:
+    _R  : Resistiver Widerstand
+    _L  : Induktiver Widerstand
+    _RL : Resistiver und Induktiver Widerstand
+"""
+
+class class_Blende_R:
+    """
+    Berücksichtigung des resistiven Widerstandes einer Blende
+    """
     def __init__(self, PARAMETER_FLUID, alpha, d, KNOTEN):
         self.Knoteni  = KNOTEN[0]
         self.Knotenj  = KNOTEN[1]        
@@ -179,7 +189,7 @@ class class_Blende:
         self.Info_Q   = 0
         self.Info_m_p = 0
         
-    def Berechnung_Volumenstroeme(self):                        
+    def Berechnung_Volumenstroeme(self, dt):                        
         dp           = self.Knoteni.p - self.Knotenj.p
         A            = 3.14156 * pow(self.d,2)/4
         #Wenn dp zu klein, dann keine Berechnung und Rückgabe Q = 0
@@ -188,7 +198,7 @@ class class_Blende:
             self.Knotenj.Q   += self.alpha * A * pow((2/self.rho),0.5) * pow(dp,0.5)        
             self.Info_Q       = self.Knotenj.Q
             
-    def Berechnung_Massenstroeme(self):                        
+    def Berechnung_Massenstroeme(self, dt):                        
         dp           = self.Knoteni.p - self.Knotenj.p
         A            = 3.14156 * pow(self.d,2)/4
         #Wenn dp zu klein, dann keine Berechnung und Rückgabe Q = 0
@@ -197,18 +207,48 @@ class class_Blende:
             self.Knotenj.m_p   += self.rho * self.alpha * A * pow((2/self.rho),0.5) * pow(dp,0.5)        
             self.Info_m_p       = self.Knotenj.m_p
             
-    
+
+class class_Rohrleitung_L:
+    """
+    Berücksichtigung des induktiven Widerstandes einer Rohrleitung
+    """
+    def __init__(self, PARAMETER_FLUID, l, d, KNOTEN):
+        self.Knoteni  = KNOTEN[0]
+        self.Knotenj  = KNOTEN[1]        
+        self.l        = l
+        self.d        = d        
+        self.rho      = PARAMETER_FLUID[0]
+        self.E        = PARAMETER_FLUID[1]    
+        self.Info_Q   = 0
+        self.Info_m_p = 0
+        
+    def Berechnung_Volumenstroeme(self, dt):                        
+        dp           = self.Knoteni.p - self.Knotenj.p
+        A            = 3.14156 * pow(self.d,2)/4
+        L            = self.rho * self.l / A
+        #Wenn dp zu klein, dann keine Berechnung und Rückgabe Q = 0
+        if (dp > 1e-3):
+            self.Knoteni.Q   += 1 / L * dp * dt
+            self.Knotenj.Q   -= 1 / L * dp * dt
+            self.Info_Q       = self.Knotenj.Q
+            
+    def Berechnung_Massenstroeme(self, dt):                        
+        dp           = self.Knoteni.p - self.Knotenj.p
+        A            = 3.14156 * pow(self.d,2)/4
+        L            = self.rho * self.l / A
+        #Wenn dp zu klein, dann keine Berechnung und Rückgabe Q = 0
+        if (dp > 1e-3):
+            self.Knoteni.m_p  += self.rho / L * dp * dt
+            self.Knotenj.m_p  -= self.rho / L * dp * dt
+            self.Info_m_p      = self.Knotenj.Q
+            
 #########################################################################
-##### Definition der primären Komponenten ###############################
+##### Definition der Knotenelemente EK ##################################
 #########################################################################
         
-class class_DGL_Kapazitaet_Volumenstrombasiert:
+class class_DGL_Behaelter_starr_Volumenstrombasiert:
     """
-    Gleichungssystem
-    du0/dt = u1
-    du1/dt = g + Fi/m - Fj/m
-    """
-    """    
+    Starrer Behälter    
     """
     def __init__(self, PARAMETER_FLUID, KNOTEN):
         self.Knoteni = KNOTEN[0]                         
@@ -236,13 +276,9 @@ class class_DGL_Kapazitaet_Volumenstrombasiert:
         p    = u[1,0]                
         self.Knoteni.p      = p
 
-class class_DGL_Kapazitaet_Massenstrombasiert:
+class class_DGL_Behaelter_starr_Massenstrombasiert:
     """
-    Gleichungssystem
-    du0/dt = u1
-    du1/dt = g + Fi/m - Fj/m
-    """
-    """    
+    Starrer Behälter   
     """
     def __init__(self, PARAMETER_FLUID, KNOTEN):
         self.Knoteni = KNOTEN[0]                         
@@ -298,6 +334,36 @@ K17           = class_Knoten()
 K18           = class_Knoten()
 K19           = class_Knoten()
 K20           = class_Knoten()
+K21           = class_Knoten()
+K22           = class_Knoten()
+K23           = class_Knoten()
+K24           = class_Knoten()
+K25           = class_Knoten()
+K26           = class_Knoten()
+K27           = class_Knoten()
+K28           = class_Knoten()
+K29           = class_Knoten()
+K30           = class_Knoten()
+K31           = class_Knoten()
+K32           = class_Knoten()
+K33           = class_Knoten()
+K34           = class_Knoten()
+K35           = class_Knoten()
+K36           = class_Knoten()
+K37           = class_Knoten()
+K38           = class_Knoten()
+K39           = class_Knoten()
+K40           = class_Knoten()
+K41           = class_Knoten()
+K42           = class_Knoten()
+K43           = class_Knoten()
+K44           = class_Knoten()
+K45           = class_Knoten()
+K46           = class_Knoten()
+K47           = class_Knoten()
+K48           = class_Knoten()
+K49           = class_Knoten()
+K50           = class_Knoten()
 
 #########################################################################
 ##### Reset_Knotenkraft #################################################
@@ -325,6 +391,36 @@ def Reset_Knotenstroeme():
     K18.Reset_Knotenstroeme()
     K19.Reset_Knotenstroeme()
     K20.Reset_Knotenstroeme()
+    K21.Reset_Knotenstroeme()
+    K22.Reset_Knotenstroeme()
+    K23.Reset_Knotenstroeme()
+    K24.Reset_Knotenstroeme()
+    K25.Reset_Knotenstroeme()
+    K26.Reset_Knotenstroeme()
+    K27.Reset_Knotenstroeme()
+    K28.Reset_Knotenstroeme()
+    K29.Reset_Knotenstroeme()
+    K30.Reset_Knotenstroeme()
+    K31.Reset_Knotenstroeme()
+    K32.Reset_Knotenstroeme()
+    K33.Reset_Knotenstroeme()
+    K34.Reset_Knotenstroeme()
+    K35.Reset_Knotenstroeme()
+    K36.Reset_Knotenstroeme()
+    K37.Reset_Knotenstroeme()
+    K38.Reset_Knotenstroeme()
+    K39.Reset_Knotenstroeme()
+    K40.Reset_Knotenstroeme()
+    K41.Reset_Knotenstroeme()
+    K42.Reset_Knotenstroeme()
+    K43.Reset_Knotenstroeme()
+    K44.Reset_Knotenstroeme()
+    K45.Reset_Knotenstroeme()
+    K46.Reset_Knotenstroeme()
+    K47.Reset_Knotenstroeme()
+    K48.Reset_Knotenstroeme()
+    K49.Reset_Knotenstroeme()
+    K50.Reset_Knotenstroeme()
 
 
 def Reset_Knoten():
@@ -348,6 +444,36 @@ def Reset_Knoten():
     K18.Reset_Knoten()
     K19.Reset_Knoten()
     K20.Reset_Knoten()
+    K21.Reset_Knoten()
+    K22.Reset_Knoten()
+    K23.Reset_Knoten()
+    K24.Reset_Knoten()
+    K25.Reset_Knoten()
+    K26.Reset_Knoten()
+    K27.Reset_Knoten()
+    K28.Reset_Knoten()
+    K29.Reset_Knoten()
+    K30.Reset_Knoten()
+    K31.Reset_Knoten()
+    K32.Reset_Knoten()
+    K33.Reset_Knoten()
+    K34.Reset_Knoten()
+    K35.Reset_Knoten()
+    K36.Reset_Knoten()
+    K37.Reset_Knoten()
+    K38.Reset_Knoten()
+    K39.Reset_Knoten()
+    K40.Reset_Knoten()
+    K41.Reset_Knoten()
+    K42.Reset_Knoten()
+    K43.Reset_Knoten()
+    K44.Reset_Knoten()
+    K45.Reset_Knoten()
+    K46.Reset_Knoten()
+    K47.Reset_Knoten()
+    K48.Reset_Knoten()
+    K49.Reset_Knoten()
+    K50.Reset_Knoten()
 
 #########################################################################
 ##### Datenlogger #######################################################
@@ -375,6 +501,36 @@ datenlogger_K17       = class_Datenlogger_Knoten()
 datenlogger_K18       = class_Datenlogger_Knoten()
 datenlogger_K19       = class_Datenlogger_Knoten()
 datenlogger_K20       = class_Datenlogger_Knoten()
+datenlogger_K21       = class_Datenlogger_Knoten()
+datenlogger_K22       = class_Datenlogger_Knoten()
+datenlogger_K23       = class_Datenlogger_Knoten()
+datenlogger_K24       = class_Datenlogger_Knoten()
+datenlogger_K25       = class_Datenlogger_Knoten()
+datenlogger_K26       = class_Datenlogger_Knoten()
+datenlogger_K27       = class_Datenlogger_Knoten()
+datenlogger_K28       = class_Datenlogger_Knoten()
+datenlogger_K29       = class_Datenlogger_Knoten()
+datenlogger_K30       = class_Datenlogger_Knoten()
+datenlogger_K31       = class_Datenlogger_Knoten()
+datenlogger_K32       = class_Datenlogger_Knoten()
+datenlogger_K33       = class_Datenlogger_Knoten()
+datenlogger_K34       = class_Datenlogger_Knoten()
+datenlogger_K35       = class_Datenlogger_Knoten()
+datenlogger_K36       = class_Datenlogger_Knoten()
+datenlogger_K37       = class_Datenlogger_Knoten()
+datenlogger_K38       = class_Datenlogger_Knoten()
+datenlogger_K39       = class_Datenlogger_Knoten()
+datenlogger_K40       = class_Datenlogger_Knoten()
+datenlogger_K41       = class_Datenlogger_Knoten()
+datenlogger_K42       = class_Datenlogger_Knoten()
+datenlogger_K43       = class_Datenlogger_Knoten()
+datenlogger_K44       = class_Datenlogger_Knoten()
+datenlogger_K45       = class_Datenlogger_Knoten()
+datenlogger_K46       = class_Datenlogger_Knoten()
+datenlogger_K47       = class_Datenlogger_Knoten()
+datenlogger_K48       = class_Datenlogger_Knoten()
+datenlogger_K49       = class_Datenlogger_Knoten()
+datenlogger_K50       = class_Datenlogger_Knoten()
 
 datenlogger_E1        = class_Datenlogger_Element()
 datenlogger_E2        = class_Datenlogger_Element()
@@ -396,6 +552,37 @@ datenlogger_E17       = class_Datenlogger_Element()
 datenlogger_E18       = class_Datenlogger_Element()
 datenlogger_E19       = class_Datenlogger_Element()
 datenlogger_E20       = class_Datenlogger_Element()
+datenlogger_E21       = class_Datenlogger_Element()
+datenlogger_E22       = class_Datenlogger_Element()
+datenlogger_E23       = class_Datenlogger_Element()
+datenlogger_E24       = class_Datenlogger_Element()
+datenlogger_E25       = class_Datenlogger_Element()
+datenlogger_E26       = class_Datenlogger_Element()
+datenlogger_E27       = class_Datenlogger_Element()
+datenlogger_E28       = class_Datenlogger_Element()
+datenlogger_E29       = class_Datenlogger_Element()
+datenlogger_E30       = class_Datenlogger_Element()
+datenlogger_E31       = class_Datenlogger_Element()
+datenlogger_E32       = class_Datenlogger_Element()
+datenlogger_E33       = class_Datenlogger_Element()
+datenlogger_E34       = class_Datenlogger_Element()
+datenlogger_E35       = class_Datenlogger_Element()
+datenlogger_E36       = class_Datenlogger_Element()
+datenlogger_E37       = class_Datenlogger_Element()
+datenlogger_E38       = class_Datenlogger_Element()
+datenlogger_E39       = class_Datenlogger_Element()
+datenlogger_E40       = class_Datenlogger_Element()
+datenlogger_E41       = class_Datenlogger_Element()
+datenlogger_E42       = class_Datenlogger_Element()
+datenlogger_E43       = class_Datenlogger_Element()
+datenlogger_E44       = class_Datenlogger_Element()
+datenlogger_E45       = class_Datenlogger_Element()
+datenlogger_E46       = class_Datenlogger_Element()
+datenlogger_E47       = class_Datenlogger_Element()
+datenlogger_E48       = class_Datenlogger_Element()
+datenlogger_E49       = class_Datenlogger_Element()
+datenlogger_E50       = class_Datenlogger_Element()
+
     
 def Datenlogger_leeren():
     datenlogger_t.clear()
@@ -420,6 +607,36 @@ def Datenlogger_leeren():
     datenlogger_K18.Werte_loeschen()
     datenlogger_K19.Werte_loeschen()
     datenlogger_K20.Werte_loeschen()
+    datenlogger_K21.Werte_loeschen()
+    datenlogger_K22.Werte_loeschen()
+    datenlogger_K23.Werte_loeschen()
+    datenlogger_K24.Werte_loeschen()
+    datenlogger_K25.Werte_loeschen()
+    datenlogger_K26.Werte_loeschen()
+    datenlogger_K27.Werte_loeschen()
+    datenlogger_K28.Werte_loeschen()
+    datenlogger_K29.Werte_loeschen()
+    datenlogger_K30.Werte_loeschen()
+    datenlogger_K31.Werte_loeschen()
+    datenlogger_K32.Werte_loeschen()
+    datenlogger_K33.Werte_loeschen()
+    datenlogger_K34.Werte_loeschen()
+    datenlogger_K35.Werte_loeschen()
+    datenlogger_K36.Werte_loeschen()
+    datenlogger_K37.Werte_loeschen()
+    datenlogger_K38.Werte_loeschen()
+    datenlogger_K39.Werte_loeschen()
+    datenlogger_K40.Werte_loeschen()
+    datenlogger_K41.Werte_loeschen()
+    datenlogger_K42.Werte_loeschen()
+    datenlogger_K43.Werte_loeschen()
+    datenlogger_K44.Werte_loeschen()
+    datenlogger_K45.Werte_loeschen()
+    datenlogger_K46.Werte_loeschen()
+    datenlogger_K47.Werte_loeschen()
+    datenlogger_K48.Werte_loeschen()
+    datenlogger_K49.Werte_loeschen()
+    datenlogger_K50.Werte_loeschen()
 
     datenlogger_E1.Werte_loeschen()
     datenlogger_E2.Werte_loeschen()
@@ -441,6 +658,36 @@ def Datenlogger_leeren():
     datenlogger_E18.Werte_loeschen()
     datenlogger_E19.Werte_loeschen()
     datenlogger_E20.Werte_loeschen()
+    datenlogger_E21.Werte_loeschen()
+    datenlogger_E22.Werte_loeschen()
+    datenlogger_E23.Werte_loeschen()
+    datenlogger_E24.Werte_loeschen()
+    datenlogger_E25.Werte_loeschen()
+    datenlogger_E26.Werte_loeschen()
+    datenlogger_E27.Werte_loeschen()
+    datenlogger_E28.Werte_loeschen()
+    datenlogger_E29.Werte_loeschen()
+    datenlogger_E30.Werte_loeschen()
+    datenlogger_E31.Werte_loeschen()
+    datenlogger_E32.Werte_loeschen()
+    datenlogger_E33.Werte_loeschen()
+    datenlogger_E34.Werte_loeschen()
+    datenlogger_E35.Werte_loeschen()
+    datenlogger_E36.Werte_loeschen()
+    datenlogger_E37.Werte_loeschen()
+    datenlogger_E38.Werte_loeschen()
+    datenlogger_E39.Werte_loeschen()
+    datenlogger_E40.Werte_loeschen()
+    datenlogger_E41.Werte_loeschen()
+    datenlogger_E42.Werte_loeschen()
+    datenlogger_E43.Werte_loeschen()
+    datenlogger_E44.Werte_loeschen()
+    datenlogger_E45.Werte_loeschen()
+    datenlogger_E46.Werte_loeschen()
+    datenlogger_E47.Werte_loeschen()
+    datenlogger_E48.Werte_loeschen()
+    datenlogger_E49.Werte_loeschen()
+    datenlogger_E50.Werte_loeschen()
 
 def Datenlogger_Knoten_schreiben(t):
     datenlogger_t.append(t) 
@@ -463,7 +710,37 @@ def Datenlogger_Knoten_schreiben(t):
     datenlogger_K17.Werte_anhaengen(K17)           
     datenlogger_K18.Werte_anhaengen(K18)           
     datenlogger_K19.Werte_anhaengen(K19)           
-    datenlogger_K20.Werte_anhaengen(K20)     
+    datenlogger_K20.Werte_anhaengen(K20)    
+    datenlogger_K21.Werte_anhaengen(K21)           
+    datenlogger_K22.Werte_anhaengen(K22)           
+    datenlogger_K23.Werte_anhaengen(K23)           
+    datenlogger_K24.Werte_anhaengen(K24)           
+    datenlogger_K25.Werte_anhaengen(K25)           
+    datenlogger_K26.Werte_anhaengen(K26)           
+    datenlogger_K27.Werte_anhaengen(K27)           
+    datenlogger_K28.Werte_anhaengen(K28)           
+    datenlogger_K29.Werte_anhaengen(K29)           
+    datenlogger_K30.Werte_anhaengen(K30)  
+    datenlogger_K31.Werte_anhaengen(K31)           
+    datenlogger_K32.Werte_anhaengen(K32)           
+    datenlogger_K33.Werte_anhaengen(K33)           
+    datenlogger_K34.Werte_anhaengen(K34)           
+    datenlogger_K35.Werte_anhaengen(K35)           
+    datenlogger_K36.Werte_anhaengen(K36)           
+    datenlogger_K37.Werte_anhaengen(K37)           
+    datenlogger_K38.Werte_anhaengen(K38)           
+    datenlogger_K39.Werte_anhaengen(K39)           
+    datenlogger_K40.Werte_anhaengen(K40) 
+    datenlogger_K41.Werte_anhaengen(K41)           
+    datenlogger_K42.Werte_anhaengen(K42)           
+    datenlogger_K43.Werte_anhaengen(K43)           
+    datenlogger_K44.Werte_anhaengen(K44)           
+    datenlogger_K45.Werte_anhaengen(K45)           
+    datenlogger_K46.Werte_anhaengen(K46)           
+    datenlogger_K47.Werte_anhaengen(K47)           
+    datenlogger_K48.Werte_anhaengen(K48)           
+    datenlogger_K49.Werte_anhaengen(K49)           
+    datenlogger_K50.Werte_anhaengen(K50)     
     
     
 #########################################################################
