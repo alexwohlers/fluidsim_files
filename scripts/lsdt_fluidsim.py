@@ -4,7 +4,7 @@
 """
 Stand 16.12.2022
 """
-
+from scipy.interpolate import interp1d
 import numpy as np
 from matplotlib import pyplot as plt
 import csv
@@ -18,6 +18,8 @@ import math
 
 plt.rcParams['figure.dpi']  = 300
 plt.rcParams['savefig.dpi'] = 300
+plt.rcParams.update({'font.size': 16})
+configuration_transparent = False
 
 #########################################################################
 ##### Definition der Knoten #############################################
@@ -741,7 +743,13 @@ def Datenlogger_Knoten_schreiben(t):
     datenlogger_K48.Werte_anhaengen(K48)           
     datenlogger_K49.Werte_anhaengen(K49)           
     datenlogger_K50.Werte_anhaengen(K50)     
+
+#########################################################################
+##### Weitere Datenlogger ###############################################
+#########################################################################   
     
+datenlogger_ventil_stellung                          = []
+datenlogger_ventil_oeffnungsquerschnittsfaktor       = []
     
 #########################################################################
 ##### csv-Datei schreiben ###############################################
@@ -757,4 +765,50 @@ def csv_schreiben(Dateiname, Knoten):
         writer.writerow(["t","p"])
         for point in range(len(datenlogger_t)):            
             writer.writerow([comma_float(datenlogger_t[point]), comma_float(Knoten.p[point])])
-            
+
+
+#########################################################################
+##### Kennfelder ########################################################
+#########################################################################
+
+class class_Kennfeld_1D:
+    def __init__(self):
+        self.pos = []
+        self.name_x = ' '
+        self.name_y = ' '
+        self.x = []
+        self.y = []    
+        
+        
+kennfeld_oeffungsquerschnitt_kugelhahn = class_Kennfeld_1D()
+
+with open("../input_csv/kennfeld_oeffungsquerschnitt_kugelhahn.csv",'r') as csvdatei:
+    csv_reader_object = csv.reader(csvdatei, delimiter=';')
+
+    zeilennummer = 0
+    for row in csv_reader_object:
+        if (zeilennummer == 0):
+            kennfeld_oeffungsquerschnitt_kugelhahn.name_x = row[0]
+            kennfeld_oeffungsquerschnitt_kugelhahn.name_y = row[1]
+            zeilennummer += 1
+        else:
+            kennfeld_oeffungsquerschnitt_kugelhahn.pos.append(zeilennummer)
+            kennfeld_oeffungsquerschnitt_kugelhahn.x.append(float(row[0]))
+            kennfeld_oeffungsquerschnitt_kugelhahn.y.append(float(row[1]))        
+            zeilennummer += 1
+    
+    print('kennfeld_oeffungsquerschnitt_kugelhahn.csv eingelesen')
+    print(f'Anzahl Datensätze importiert: {zeilennummer-1} \n')    
+        
+f_linear_oeffungsquerschnitt_kugelhahn = interp1d(kennfeld_oeffungsquerschnitt_kugelhahn.x, kennfeld_oeffungsquerschnitt_kugelhahn.y)
+
+stellung_plot = np.arange(0, 1, 0.05)
+oeffungsquerschnitt_plot = f_linear_oeffungsquerschnitt_kugelhahn(stellung_plot)
+fig = plt.figure()
+fig.patch.set_facecolor('white')
+plt.title('kennfeld_oeffungsquerschnitt_kugelhahn')
+plt.plot(stellung_plot,oeffungsquerschnitt_plot,label='Querschnittsfaktor []')
+plt.xlabel('Stellung []')
+plt.legend()
+fig.tight_layout()
+fig.savefig('../output_bilder/kennfeld_oeffungsquerschnitt_kugelhahn.png', transparent=configuration_transparent)            
